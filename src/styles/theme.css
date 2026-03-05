@@ -1,0 +1,26 @@
+/* 
+全站主题色变量（在组件中通过 var(--xxx) 引用）
+
+使用位置示例：
+- 核心能力卡片 CoreCapabilities：
+  - 内圈发光/hover 背景：bg-[var(--accent-weak)]、bg-[var(--accent-weak-20)]、group-hover:bg-[var(--accent-20)]
+- 作品卡片 ProjectShowcase：
+  - 边缘光与外层柔光：bg-[var(--accent-weak)]、bg-[var(--accent-weak-20)]
+- 实习经历卡片 Experience：
+  - 时间轴中线：via-[var(--accent)]/50
+  - 卡片边框（含 hover）：border-[var(--accent)]/20、hover:border-[var(--accent)]/40
+  - 职位标题/圆点：text-[var(--accent-weak)]、bg-[var(--accent-weak)]/60
+
+其他颜色入口（未接入变量）：
+- 粒子配色：src/components/ParticleHero.tsx 中的 uColor1/uColor2
+- 全局深空背景与底部极光：src/App.tsx 中的 #0B1026、#06B6D4
+*/
+:root{
+  --accent: #1d4e9e;
+  --accent-weak: #434de4;
+  --accent-20: rgba(29,78,158,0.2);
+  --accent-30: rgba(29,78,158,0.3);
+  --accent-weak-10: rgba(55,150,197,0.1);
+  --accent-weak-20: rgba(55,150,197,0.2);
+  --accent-weak-40: rgba(55,150,197,0.4);
+}

@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/coze/:path*",
+      "destination": "https://api.coze.cn/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
