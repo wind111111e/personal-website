@@ -16,6 +16,16 @@ type Project = {
 
 const projects: Project[] = [
   {
+    id: "personal-site",
+    title: "个人网站",
+    description: "通过 Vibe Coding 快速构建的个人网站，展示个人经历、能力与项目作品。",
+    icon: Layout,
+    image: "/personal-site.png",
+    color: "from-purple-500 to-blue-500",
+    action: () => window.scrollTo({ top: 0, behavior: "smooth" }),
+    tags: ["Trae", "React", "Three.js"],
+  },
+  {
     id: "puzzle-game",
     title: "密室逃脱",
     description: "一款悬疑解谜类游戏，玩家需要探索房间获取钥匙逃出密室。",
@@ -24,15 +34,6 @@ const projects: Project[] = [
     color: "from-red-500 to-orange-500",
     link: "/game/anna-diary",
     tags: ["Unity", "Chatgpt"],
-  },
-  {
-    id: "pet-video",
-    title: "萌宠短视频",
-    description: "一部以自家宠物猫为主角制作的创意短片，呈现骑车买菜、回家做饭等趣味生活场景。",
-    icon: Video,
-    image: "/pet-video.png",
-    color: "from-pink-500 to-rose-500",
-    tags: ["Seedance 2.0", "Nanobanana"],
   },
   {
     id: "customer-service",
@@ -67,27 +68,24 @@ export const ProjectShowcase = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className="group relative h-full rounded-xl cursor-pointer"
+                className="group relative h-full rounded-xl cursor-pointer overflow-hidden p-[1px] bg-white/5 border border-white/10 hover:border-transparent transition-colors duration-300"
               >
-                {/* 1. 默认背景：深色半透明玻璃质感，保持干净 */}
-                <div className="absolute inset-0 bg-white/[0.03] backdrop-blur-sm rounded-xl border border-white/[0.08] transition-all duration-300 group-hover:border-transparent group-hover:-translate-y-2 z-10" />
-
-                {/* 2. Hover 光效层 - 使用 mask 实现仅边缘发光 */}
-                <div className="absolute -inset-[2px] rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-500 z-0 group-hover:-translate-y-2">
-                  {/* 亮蓝色背景层，配合 blur 实现向外透明 */}
-                  <div className="absolute inset-0 rounded-xl bg-[var(--accent-weak)] blur-sm" />
-                  
-                  {/* 内部遮罩，挖空中间，只保留边缘发光 */}
-                  <div className="absolute inset-[2px] rounded-xl bg-black" />
+                {/* 1. 流动霓虹边框 (Animated Border) */}
+                <div className="absolute inset-[-200%] opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-0">
+                  <div className="absolute inset-0 animate-[spin_4s_linear_infinite] bg-[conic-gradient(from_0deg,transparent_0_340deg,#a855f7_360deg)]" />
+                  <div className="absolute inset-0 animate-[spin_4s_linear_infinite] bg-[conic-gradient(from_180deg,transparent_0_340deg,#3b82f6_360deg)] delay-[-2s]" />
                 </div>
+
+                {/* 2. 默认背景：深色半透明玻璃质感 */}
+                <div className="absolute inset-[1px] bg-[#0c1220] rounded-xl z-10 transition-colors duration-300 group-hover:bg-[#0f1629]" />
                 
-                {/* 3. 外层柔光 (Ambient Glow) - 极低透明度，大范围扩散 */}
-                <div className="absolute -inset-8 rounded-xl bg-[var(--accent-weak-20)] opacity-0 group-hover:opacity-100 blur-3xl transition-all duration-700 -z-10 group-hover:-translate-y-2" />
+                {/* 3. 外层柔光 (Ambient Glow) */}
+                <div className="absolute -inset-8 bg-blue-500/20 opacity-0 group-hover:opacity-100 blur-3xl transition-opacity duration-700 -z-10" />
 
                 {/* 4. 卡片内容 */}
-                <div className="relative h-full flex flex-col z-20 overflow-hidden rounded-xl transition-transform duration-300 group-hover:-translate-y-2">
+                <div className="relative h-full flex flex-col z-20 overflow-hidden rounded-xl">
                   {/* 图片占位区域 */}
-                  <div className="h-48 w-full flex items-center justify-center relative overflow-hidden">
+                  <div className="h-48 w-full flex items-center justify-center relative overflow-hidden rounded-t-xl">
                     <div className={`absolute inset-0 bg-gradient-to-br ${project.color} opacity-10`} />
                     <div className="absolute inset-0 bg-black/20" />
                     {project.image ? (
@@ -105,7 +103,7 @@ export const ProjectShowcase = () => {
                     <h3 className="text-xl font-bold mb-3 text-white/90 group-hover:text-white transition-colors duration-300">
                       {project.title}
                     </h3>
-                    <p className="text-gray-400 text-sm leading-relaxed mb-4 flex-grow">
+                    <p className="text-gray-400 text-sm leading-relaxed mb-4 flex-grow group-hover:text-gray-300 transition-colors duration-300">
                       {project.description}
                     </p>
                     

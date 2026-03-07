@@ -102,9 +102,12 @@ function AppContent() {
   );
 }
 
+import { ScrollToTop } from "./components/ScrollToTop";
+
 function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <AppContent />
     </BrowserRouter>
   );

@@ -3,10 +3,46 @@
 @tailwind utilities;
 
 @layer base {
+  /* 
   html {
     scroll-behavior: smooth;
   }
+  移除全局 smooth，避免路由切换时页面“滑”到位置。
+  导航栏的平滑滚动通过 JS 控制。
+  */
   body {
     @apply bg-background text-white antialiased;
+  }
+}
+
+@layer utilities {
+  @keyframes star-movement-bottom {
+    0% {
+      transform: translate(0%, 0%);
+      opacity: 1;
+    }
+    100% {
+      transform: translate(-100%, 0%);
+      opacity: 0;
+    }
+  }
+
+  @keyframes star-movement-top {
+    0% {
+      transform: translate(0%, 0%);
+      opacity: 1;
+    }
+    100% {
+      transform: translate(100%, 0%);
+      opacity: 0;
+    }
+  }
+
+  .animate-star-movement-bottom {
+    animation: star-movement-bottom linear infinite alternate;
+  }
+
+  .animate-star-movement-top {
+    animation: star-movement-top linear infinite alternate;
   }
 }

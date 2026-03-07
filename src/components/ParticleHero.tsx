@@ -189,31 +189,12 @@ const Particles = () => {
   }, [count]);
 
   // 动画状态
-  const [targetIndex, setTargetIndex] = useState(0);
+  // const [targetIndex, setTargetIndex] = useState(0); // 不再需要手动控制 index
   const explosionRef = useRef({ active: false, startTime: 0, duration: 1.2 });
 
   useEffect(() => {
-    // 每隔 5 秒切换一次形态（包含等待时间和过渡时间）
-    const interval = setInterval(() => {
-      setTargetIndex(prev => prev + 1);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    // 移除自动爆炸逻辑
-    // const handleExplosion = () => { ... }
-    // setTimeout(handleExplosion, 1500); 
-    
-    // 只保留点击触发（可选）
-    const handleClick = () => {
-      if (!explosionRef.current.active) {
-        explosionRef.current.active = true;
-        explosionRef.current.startTime = performance.now() / 1000;
-      }
-    };
-    window.addEventListener('click', handleClick);
-    return () => window.removeEventListener('click', handleClick);
+    // 持续变换：无需等待，每帧都在变
+    // 我们在 useFrame 里使用 uTime 来驱动 morph，不再需要 setInterval
   }, []);
 
   useFrame((state) => {
@@ -227,23 +208,36 @@ const Particles = () => {
     const pointer = state.pointer;
     materialRef.current.uniforms.uMouse.value.lerp(pointer, 0.1);
 
-    // 变换逻辑 (平滑过渡)
-    const currentMorph = materialRef.current.uniforms.uMorph.value;
-    const targetMorph = targetIndex;
+    // 变换逻辑 (停留2秒 + 平滑过渡)
+    // 周期设计：
+    // 0s - 2s: 形态0 (停留)
+    // 2s - 8s: 形态0 -> 形态1 (过渡 6s)
+    // 0s - 2s: 形态0 (停留)
+      // 2s - 8s: 形态0 -> 形态1 (过渡 6s)
+      // ...
+      
+      const holdDuration = 2.0;
+      const morphDuration = 6.0;
+      
+      const totalCycleTime = (holdDuration + morphDuration) * 3;
+      const loopTime = time % totalCycleTime;
+      
+      const currentStage = Math.floor(loopTime / (holdDuration + morphDuration));
+      const timeInStage = loopTime % (holdDuration + morphDuration);
+      
+      let morphValue = currentStage;
+      
+      if (timeInStage > holdDuration) {
+        // 过渡阶段
+        const t = (timeInStage - holdDuration) / morphDuration;
+        // EaseInOutSine
+        const ease = -(Math.cos(Math.PI * t) - 1) / 2;
+        morphValue += ease;
+      }
+      // 否则 morphValue 保持为 currentStage (即整数，停留状态)
+      
+      materialRef.current.uniforms.uMorph.value = morphValue;
     
-    // 如果当前值小于目标值，进行插值更新
-    if (currentMorph < targetMorph) {
-      // 速度控制：1.0 单位变化需要在 1.5 秒内完成
-      // speed = 1.0 / 1.5 ≈ 0.666
-      const speed = 0.666;
-      let nextMorph = currentMorph + speed * 0.016; // 简单的帧时间近似，避免 getDelta 问题
-      
-      // 防止过冲
-      if (nextMorph > targetMorph) nextMorph = targetMorph;
-      
-      materialRef.current.uniforms.uMorph.value = nextMorph;
-    }
-
     // 爆炸逻辑
     if (explosionRef.current.active) {
       const expElapsed = time - explosionRef.current.startTime;

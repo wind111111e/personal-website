@@ -28,16 +28,9 @@ export default defineConfig({
     tsconfigPaths()
   ],
   server: {
-    proxy: {
-      '/api/coze': {
-        target: 'https://api.coze.cn',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/coze/, ''),
-        headers: {
-          'Origin': 'https://api.coze.cn',
-          'Referer': 'https://api.coze.cn'
-        }
-      },
-    },
+    // 移除本地代理，因为我们在本地开发时无法运行 Vercel Functions
+    // 如果要测试，建议使用 Vercel CLI: `vercel dev`
+    // 或者我们保留这个代理，但仅用于直接连接 Coze API (此时 Token 仍需暴露在 .env)
+    // 为了安全，建议完全通过 Vercel 部署后测试，或者本地用 vercel dev
   },
 })

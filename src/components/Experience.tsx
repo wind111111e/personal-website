@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import StarBorder from "./ui/star-border";
 
 const experiences = [
   {
@@ -75,23 +76,36 @@ export const Experience = () => {
                     index % 2 === 0 ? "md:pl-16" : "md:pr-16"
                   }`}
                 >
-                  <div className="relative group">
-                    {/* Card Background with Glow */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 to-purple-600/5 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <div className="group relative h-full rounded-2xl overflow-hidden p-[1px] bg-white/5 border border-white/10 hover:border-transparent transition-colors duration-300">
+                    {/* 1. 流动霓虹边框 (Animated Border) */}
+                    <div className="absolute inset-[-200%] opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-0">
+                      <div className="absolute inset-0 animate-[spin_4s_linear_infinite] bg-[conic-gradient(from_0deg,transparent_0_340deg,#a855f7_360deg)]" />
+                      <div className="absolute inset-0 animate-[spin_4s_linear_infinite] bg-[conic-gradient(from_180deg,transparent_0_340deg,#3b82f6_360deg)] delay-[-2s]" />
+                    </div>
+
+                    {/* 2. 默认背景：深色半透明玻璃质感 */}
+                    <div className="absolute inset-[1px] bg-[#0c1220] rounded-2xl z-10 transition-colors duration-300 group-hover:bg-[#0f1629]" />
                     
-                    <div className="relative bg-[#0B1026]/60 backdrop-blur-md border border-blue-500/20 rounded-2xl p-6 md:p-8 hover:border-blue-500/40 transition-all duration-300 shadow-[0_0_30px_rgba(0,0,0,0.2)]">
+                    {/* 3. 外层柔光 (Ambient Glow) */}
+                    <div className="absolute -inset-8 bg-blue-500/20 opacity-0 group-hover:opacity-100 blur-3xl transition-opacity duration-700 -z-10" />
+
+                    {/* 4. 卡片内容 */}
+                    <div className="relative z-20 w-full h-full flex flex-col p-6 md:p-8">
+                      {/* 内部微光 */}
+                      <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none rounded-2xl" />
+
                       {/* Year Badge */}
-                      <div className="inline-block px-3 py-1 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-200 text-xs font-semibold mb-4 shadow-[0_0_10px_rgba(59,130,246,0.2)]">
+                      <div className="inline-block px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300 text-xs font-semibold mb-4 shadow-[0_0_10px_rgba(59,130,246,0.1)] relative z-20 w-fit">
                         {exp.period}
                       </div>
 
-                      <h3 className="text-2xl font-bold text-white mb-2">{exp.company}</h3>
-                      <h4 className="text-lg text-blue-400 font-medium mb-6">{exp.role}</h4>
+                      <h3 className="text-2xl font-bold text-white mb-2 relative z-20">{exp.company}</h3>
+                      <h4 className="text-lg text-blue-400 font-medium mb-6 relative z-20">{exp.role}</h4>
                       
-                      <ul className="space-y-3">
+                      <ul className="space-y-3 relative z-20">
                         {exp.items.map((item, i) => (
-                          <li key={i} className="flex items-start gap-3 text-gray-300 text-sm leading-relaxed">
-                            <span className="mt-2 w-1.5 h-1.5 rounded-full bg-blue-400/60 flex-shrink-0 shadow-[0_0_5px_rgba(96,165,250,0.5)]" />
+                          <li key={i} className="flex items-start gap-3 text-gray-400 group-hover:text-gray-300 transition-colors duration-300 text-sm leading-relaxed">
+                            <span className="mt-2 w-1.5 h-1.5 rounded-full bg-blue-500/50 flex-shrink-0 shadow-[0_0_5px_rgba(59,130,246,0.5)]" />
                             <span>{item}</span>
                           </li>
                         ))}

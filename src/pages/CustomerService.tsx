@@ -136,34 +136,29 @@ export const CustomerService = () => {
   };
 
   const fetchCozeWorkflow = async (input: string) => {
-    const token = import.meta.env.VITE_COZE_API_TOKEN;
-    const workflowId = import.meta.env.VITE_COZE_WORKFLOW_ID;
-    // const baseUrl = import.meta.env.VITE_COZE_BASE_URL || "https://api.coze.cn";
-    // For local dev with Vite proxy, use relative path
+    // 之前是直接在前端读取 Token，现在不再需要了
+    // const token = import.meta.env.VITE_COZE_API_TOKEN; 
+    
+    // 调用我们自己的 API 路由 (位于 api/coze.ts)
+    // 无论是本地开发 (vite proxy) 还是线上环境 (vercel functions)，路径都是 /api/coze
     const baseUrl = "/api/coze";
 
-    if (!token || !workflowId) {
-      console.error("Missing Coze API configuration");
-      throw new Error("Missing Coze API configuration");
-    }
-
     const request = async (parameters: any) => {
-      // Important: Use the proxy path, do not use absolute URL in browser to avoid CORS
-      const res = await fetch(`${baseUrl}/v1/workflow/run`, {
+      const res = await fetch(baseUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
+          // 不再需要在 Authorization 头里传 Token，Token 由后端读取
         },
         body: JSON.stringify({
-          workflow_id: workflowId,
+          // 如果后端已经配置了默认 workflowId，这里甚至可以不传，或者传此作为备选
+          workflow_id: import.meta.env.VITE_COZE_WORKFLOW_ID, 
           parameters,
         }),
       });
 
       if (!res.ok) {
         const errorText = await res.text();
-        // If error contains "Missing required parameters", it might be due to format
         if (errorText.includes("Missing required parameters") || res.status === 400) {
            throw new Error(`ParameterFormatError: ${errorText}`);
         }

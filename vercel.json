@@ -1,8 +1,14 @@
 {
+  "functions": {
+    "api/coze.ts": {
+      "memory": 1024,
+      "maxDuration": 10
+    }
+  },
   "rewrites": [
     {
-      "source": "/api/coze/:path*",
-      "destination": "https://api.coze.cn/:path*"
+      "source": "/api/coze",
+      "destination": "/api/coze"
     },
     {
       "source": "/(.*)",

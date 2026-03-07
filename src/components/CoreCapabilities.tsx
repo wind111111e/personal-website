@@ -49,27 +49,26 @@ export const CoreCapabilities = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.1 }}
-              className="group relative h-full rounded-xl"
+              className="group relative h-full rounded-xl overflow-hidden p-[1px] bg-white/5 border border-white/10 hover:border-transparent transition-colors duration-300"
             >
-              {/* 1. 默认背景：深色半透明玻璃质感，保持干净 */}
-              <div className="absolute inset-0 bg-white/[0.03] backdrop-blur-sm rounded-xl border border-white/[0.08] transition-all duration-300 group-hover:border-transparent z-10" />
-
-              {/* 2. Hover 光效层 - 使用 mask 实现仅边缘发光 */}
-              <div className="absolute -inset-[2px] rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-0">
-                {/* 亮蓝色背景层，配合 blur 实现向外透明 */}
-                <div className="absolute inset-0 rounded-xl bg-[var(--accent-weak)] blur-sm" />
-                
-                {/* 内部遮罩，挖空中间，只保留边缘发光 */}
-                <div className="absolute inset-[2px] rounded-xl bg-black" />
+              {/* 1. 流动霓虹边框 (Animated Border) - 放在最底层，通过 p-[1px] 露出来 */}
+              <div className="absolute inset-[-200%] opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-0">
+                 {/* 这里的 conic-gradient 创建旋转的光锥 */}
+                 <div className="absolute inset-0 animate-[spin_4s_linear_infinite] bg-[conic-gradient(from_0deg,transparent_0_340deg,#a855f7_360deg)]" />
+                 {/* 第二层光锥，颜色偏移，形成渐变流 */}
+                 <div className="absolute inset-0 animate-[spin_4s_linear_infinite] bg-[conic-gradient(from_180deg,transparent_0_340deg,#3b82f6_360deg)] delay-[-2s]" />
               </div>
+
+              {/* 2. 默认背景：深色半透明玻璃质感 - 盖在中间，只留出1px边框 */}
+              <div className="absolute inset-[1px] bg-[#0c1220] rounded-xl z-10 transition-colors duration-300 group-hover:bg-[#0f1629]" />
               
               {/* 3. 外层柔光 (Ambient Glow) - 极低透明度，大范围扩散 */}
-              <div className="absolute -inset-8 rounded-xl bg-[var(--accent-weak-20)] opacity-0 group-hover:opacity-100 blur-3xl transition-opacity duration-700 -z-10" />
+              <div className="absolute -inset-8 bg-blue-500/20 opacity-0 group-hover:opacity-100 blur-3xl transition-opacity duration-700 -z-10" />
 
               {/* 4. 卡片内容 */}
-              <div className="relative h-full p-6 flex flex-col transition-transform duration-300 group-hover:-translate-y-1 z-20">
-                <div className="mb-6 p-3 rounded-lg bg-white/5 w-fit group-hover:bg-[var(--accent-20)] group-hover:text-[var(--accent-weak)] transition-colors duration-300 border border-white/5">
-                  <cap.icon className="w-6 h-6 text-gray-400 group-hover:text-[var(--accent-weak)] transition-colors duration-300" />
+              <div className="relative h-full p-6 flex flex-col transition-transform duration-300 z-20">
+                <div className="mb-6 p-3 rounded-lg bg-white/5 w-fit group-hover:bg-blue-500/10 group-hover:text-blue-400 transition-colors duration-300 border border-white/5">
+                  <cap.icon className="w-6 h-6 text-gray-400 group-hover:text-blue-400 transition-colors duration-300" />
                 </div>
                 <h3 className="text-xl font-bold mb-3 text-white/90 group-hover:text-white transition-colors duration-300">
                   {cap.title}
