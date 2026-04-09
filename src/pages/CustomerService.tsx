@@ -1,14 +1,62 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Send, Sparkles, ChevronLeft, Menu, PanelLeft } from "lucide-react";
+import { ArrowLeft, Send, Sparkles, ChevronLeft, Menu, PanelLeft, Check } from "lucide-react";
 import { Link } from "react-router-dom";
 import { CozeAPI } from '@coze/api';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 type Message = {
   id: string;
   role: "user" | "assistant";
   content: string;
   timestamp: number;
+  isStreaming?: boolean;
+};
+
+const TypewriterMarkdown = ({ content, isStreaming }: { content: string, isStreaming?: boolean }) => {
+  const [displayedContent, setDisplayedContent] = useState("");
+  const contentRef = useRef(content);
+  
+  useEffect(() => {
+    contentRef.current = content;
+    if (!isStreaming) {
+      setDisplayedContent(content);
+    }
+  }, [content, isStreaming]);
+
+  useEffect(() => {
+    if (!isStreaming) return;
+
+    const interval = setInterval(() => {
+      setDisplayedContent(prev => {
+        const target = contentRef.current;
+        if (prev.length < target.length) {
+          const charsToAdd = target.length - prev.length > 20 ? 3 : 1; 
+          return target.slice(0, prev.length + charsToAdd);
+        }
+        return prev;
+      });
+    }, 30);
+
+    return () => clearInterval(interval);
+  }, [isStreaming]);
+
+  return (
+    <div className="prose prose-sm max-w-none prose-p:my-1 prose-pre:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-headings:my-2">
+      {displayedContent ? (
+        <ReactMarkdown remarkPlugins={[[remarkGfm, { singleTilde: false }]]}>
+          {displayedContent}
+        </ReactMarkdown>
+      ) : isStreaming ? (
+        <p className="flex items-center min-h-[22px]">
+          <span className="inline-block w-2.5 h-2.5 rounded-full bg-gray-800 animate-pulse" />
+        </p>
+      ) : (
+        <p className="text-gray-500 min-h-[22px]">工作流执行成功，但未返回文本内容。</p>
+      )}
+    </div>
+  );
 };
 
 export const CustomerService = () => {
@@ -32,9 +80,9 @@ export const CustomerService = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const quickQuestions = [
-    "你好，这个订单202503050004发货了吗",
     "商品已经退回了，退款多久能到账",
-    "想咨询下羊毛衫怎么洗"
+    "想咨询下羊毛衫怎么洗",
+    "你好，这个订单202503050004发货了吗"
   ];
 
   // Auto scroll to bottom
@@ -78,33 +126,40 @@ export const CustomerService = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetchCozeWorkflow(userMessage.content);
-      // Coze API returns { code: 0, data: "{\"output\":\"...\"}", msg: "success" }
-      
-      let output = "";
-      
-      if (response.code === 0 && response.data) {
-        try {
-          // data field is usually a JSON string containing the workflow output
-          const dataObj = JSON.parse(response.data);
-          output = dataObj.output || dataObj.data || JSON.stringify(dataObj);
-        } catch (e) {
-          // If data is not a JSON string, use it directly
-          output = response.data;
-        }
-      } else {
-        console.error("Coze API Error:", response);
-        output = `服务响应异常: ${response.msg || "未知错误"}`;
-      }
-
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
+      const assistantMessageId = (Date.now() + 1).toString();
+      const initialAssistantMessage: Message = {
+        id: assistantMessageId,
         role: "assistant",
-        content: output || "抱歉，我没有理解您的意思。",
+        content: "",
         timestamp: Date.now(),
+        isStreaming: true,
       };
       
-      setMessages((prev) => [...prev, assistantMessage]);
+      setMessages((prev) => [...prev, initialAssistantMessage]);
+
+      await fetchCozeWorkflow(userMessage.content, (chunk) => {
+        setMessages((prev) => 
+          prev.map((msg) => {
+            if (msg.id === assistantMessageId) {
+              return { ...msg, content: msg.content + chunk };
+            }
+            return msg;
+          })
+        );
+      });
+
+      // 检查最终的消息内容是否为空，并标记流式输出结束
+      setMessages((prev) => {
+        return prev.map(m => {
+          if (m.id === assistantMessageId) {
+            const finalContent = !m.content.trim() 
+              ? "工作流执行成功，但未返回文本内容。请检查 Coze 中工作流的“结束节点”是否正确勾选了“支持流式输出”，以及输入/输出变量映射是否正确。" 
+              : m.content;
+            return { ...m, content: finalContent, isStreaming: false };
+          }
+          return m;
+        });
+      });
 
     } catch (error) {
       console.error("Failed to fetch:", error);
@@ -128,27 +183,19 @@ export const CustomerService = () => {
     sendMessage(inputValue);
   };
 
-  const fetchCozeWorkflow = async (input: string) => {
-    // 之前是直接在前端读取 Token，现在不再需要了
-    // const token = import.meta.env.VITE_COZE_API_TOKEN; 
-    
-    // 调用我们自己的 API 路由 (位于 api/coze.ts)
-    // 无论是本地开发 (vite proxy) 还是线上环境 (vercel functions)，路径都是 /api/coze
+  const fetchCozeWorkflow = async (input: string, onData?: (chunk: string) => void) => {
     const baseUrl = "/api/coze";
 
-    const request = async (parameters: any) => {
+    const request = async (parameters: any, streamCallback?: (chunk: string) => void) => {
       const res = await fetch(baseUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          // 不再需要在 Authorization 头里传 Token，Token 由后端读取
         },
         body: JSON.stringify({
-          // 如果后端已经配置了默认 workflowId，这里甚至可以不传，或者传此作为备选
           workflow_id: import.meta.env.VITE_COZE_WORKFLOW_ID, 
           parameters,
-          // Add this so that Vite local dev server knows it needs to be processed by our plugin/serverless 
-          // or we bypass the proxy and hit our actual dev server endpoint
+          stream: !!streamCallback
         }),
       });
 
@@ -160,29 +207,67 @@ export const CustomerService = () => {
         throw new Error(`API Error: ${res.status} - ${errorText}`);
       }
 
+      if (streamCallback && res.body) {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        let buffer = "";
+        let currentEvent = "";
+        let finalDebugUrl = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          
+          buffer = lines.pop() || "";
+
+          for (const line of lines) {
+            if (line.startsWith('event:')) {
+              currentEvent = line.slice(6).trim();
+            } else if (line.startsWith('data:')) {
+              const dataStr = line.slice(5).trim();
+              if (dataStr) {
+                try {
+                  const dataObj = JSON.parse(dataStr);
+                  
+                  if (currentEvent === "Message") {
+                    console.log("Parsed Coze Event:", dataObj);
+                    if (dataObj.content) {
+                      streamCallback(dataObj.content);
+                    }
+                  } else if (currentEvent === "Done" || dataObj.debug_url) {
+                    if (dataObj.debug_url) {
+                      finalDebugUrl = dataObj.debug_url;
+                    }
+                  }
+                } catch (e) {
+                  console.error("Failed to parse event data:", e);
+                }
+              }
+            }
+          }
+        }
+        return { code: 0, data: '{"output":"[Stream Completed]"}', debug_url: finalDebugUrl };
+      }
+
       return res.json();
     };
 
-    // First attempt: object parameters
     try {
-      const response = await request({ input });
-      console.log('Coze Response:', response); // Debug log
+      const response = await request({ input }, onData);
+      console.log('Coze Response:', response);
       
-      // Update debug URL if available
       if (response.debug_url) {
         setDebugUrl(response.debug_url);
       }
       
       return response;
     } catch (error: any) {
-      // Only retry if it's a parameter format issue
       if (error.message && error.message.includes("ParameterFormatError")) {
          console.warn("First attempt failed with parameter error, retrying with stringified parameters...");
-         // Fallback attempt: JSON string parameters
-         // Note: Coze API sometimes requires the value of 'parameters' to be a JSON string
-         // But usually for 'input', it expects an object. 
-         // If the workflow expects a variable named 'input', pass { input: "value" }
-         const retryResponse = await request(JSON.stringify({ input }));
+         const retryResponse = await request(JSON.stringify({ input }), onData);
          
          if (retryResponse.debug_url) {
            setDebugUrl(retryResponse.debug_url);
@@ -193,6 +278,7 @@ export const CustomerService = () => {
       throw error;
     }
   };
+
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -409,7 +495,11 @@ export const CustomerService = () => {
                       ? "bg-blue-600 text-white rounded-br-sm" 
                       : "bg-[#f7f8fa] text-gray-800 rounded-bl-sm border border-gray-100"
                   }`}>
-                    <p className="whitespace-pre-wrap">{msg.content}</p>
+                    {msg.role === "user" ? (
+                      <p className="whitespace-pre-wrap">{msg.content}</p>
+                    ) : (
+                      <TypewriterMarkdown content={msg.content} isStreaming={msg.isStreaming} />
+                    )}
                   </div>
 
                   {msg.role === "user" && (
@@ -420,28 +510,7 @@ export const CustomerService = () => {
                 </motion.div>
               ))}
               
-              {isLoading && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex justify-start items-start gap-3"
-                >
-                  <div className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex-shrink-0 overflow-hidden mt-1">
-                      <img 
-                        src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&backgroundColor=b6e3f4&clothing=hoodie&clothingColor=3c4f76&eyes=happy&eyebrows=default&mouth=smile&skin=light" 
-                        alt="小咪"
-                        className="w-full h-full object-cover"
-                      />
-                  </div>
-                  <div className="bg-[#f7f8fa] text-gray-500 rounded-2xl rounded-bl-sm px-4 py-3 border border-gray-100 shadow-sm flex items-center gap-2">
-                    <div className="flex gap-1">
-                      <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0s' }} />
-                      <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-                      <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
-                    </div>
-                  </div>
-                </motion.div>
-              )}
+              {/* We no longer need the separate isLoading block since we add an empty assistant message immediately */}
               <div ref={messagesEndRef} />
             </div>
 
@@ -515,10 +584,10 @@ export const CustomerService = () => {
              <div className="flex-1 p-6 flex flex-col items-center justify-center text-center">
                {debugUrl ? (
                  <div className="w-full max-w-md bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
-                   <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mb-6 mx-auto border-4 border-green-100">
-                     <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-ping" />
-                   </div>
-                   <h4 className="text-xl font-bold text-gray-900 mb-3">执行成功</h4>
+                    <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mb-6 mx-auto border-4 border-green-100">
+                      <Check className="w-6 h-6 text-green-500 animate-ping-custom" strokeWidth={3} />
+                    </div>
+                    <h4 className="text-xl font-bold text-gray-900 mb-3">执行成功</h4>
                    <p className="text-gray-500 mb-8 leading-relaxed text-sm">
                      工作流已完成执行，您可以点击下方链接跳转至 Coze 平台，<br/>查看本次对话的完整节点数据与 Trace 信息。
                    </p>

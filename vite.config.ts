@@ -61,8 +61,13 @@ function cozeApiPlugin(mode: string): Plugin {
               return;
             }
 
+            const isStream = parsedBody.stream === true;
+            const endpoint = isStream 
+              ? 'https://api.coze.cn/v1/workflow/stream_run' 
+              : 'https://api.coze.cn/v1/workflow/run';
+
             // Using global fetch
-            const cozeRes = await fetch('https://api.coze.cn/v1/workflow/run', {
+            const cozeRes = await fetch(endpoint, {
               method: 'POST',
               headers: {
                 'Authorization': `Bearer ${cachedToken}`,
@@ -74,10 +79,27 @@ function cozeApiPlugin(mode: string): Plugin {
               }),
             });
 
-            const data = await cozeRes.text();
-            res.statusCode = cozeRes.status;
-            res.setHeader('Content-Type', 'application/json');
-            res.end(data);
+            if (isStream) {
+              res.statusCode = cozeRes.status;
+              res.setHeader('Content-Type', 'text/event-stream');
+              res.setHeader('Cache-Control', 'no-cache');
+              res.setHeader('Connection', 'keep-alive');
+
+              if (cozeRes.body) {
+                const reader = cozeRes.body.getReader();
+                while (true) {
+                  const { done, value } = await reader.read();
+                  if (done) break;
+                  res.write(value);
+                }
+              }
+              res.end();
+            } else {
+              const data = await cozeRes.text();
+              res.statusCode = cozeRes.status;
+              res.setHeader('Content-Type', 'application/json');
+              res.end(data);
+            }
           } catch (error: any) {
             console.error('Coze Proxy Error:', error);
             res.statusCode = 500;

@@ -56,7 +56,7 @@ export default async function handler(
   const workflowId = process.env.COZE_WORKFLOW_ID || process.env.VITE_COZE_WORKFLOW_ID;
 
   try {
-    const { parameters, workflow_id } = request.body;
+    const { parameters, workflow_id, stream } = request.body;
 
     // Use the workflow_id from env if available, otherwise use the one from request
     // This prevents users from using your token to call other workflows
@@ -69,8 +69,13 @@ export default async function handler(
     // Get JWT Token for authentication
     const token = await getValidToken();
 
+    // Determine the endpoint based on stream parameter
+    const endpoint = stream 
+      ? 'https://api.coze.cn/v1/workflow/stream_run' 
+      : 'https://api.coze.cn/v1/workflow/run';
+
     // Call Coze API
-    const cozeResponse = await fetch('https://api.coze.cn/v1/workflow/run', {
+    const cozeResponse = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -82,11 +87,31 @@ export default async function handler(
       }),
     });
 
-    const data = await cozeResponse.json();
-
     if (!cozeResponse.ok) {
+      const data = await cozeResponse.json();
       return response.status(cozeResponse.status).json(data);
     }
+
+    if (stream) {
+      response.setHeader('Content-Type', 'text/event-stream');
+      response.setHeader('Cache-Control', 'no-cache');
+      response.setHeader('Connection', 'keep-alive');
+
+      if (!cozeResponse.body) {
+        return response.status(500).json({ error: 'No stream body returned' });
+      }
+
+      const reader = cozeResponse.body.getReader();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        response.write(value);
+      }
+      response.end();
+      return;
+    }
+
+    const data = await cozeResponse.json();
 
     return response.status(200).json(data);
   } catch (error: any) {

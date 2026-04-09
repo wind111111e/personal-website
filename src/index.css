@@ -45,4 +45,19 @@
   .animate-star-movement-top {
     animation: star-movement-top linear infinite alternate;
   }
+
+  @keyframes ping-custom {
+    0% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(2);
+      opacity: 0;
+    }
+  }
+
+  .animate-ping-custom {
+    animation: ping-custom 2.5s ease-out infinite;
+  }
 }
