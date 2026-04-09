@@ -29,13 +29,6 @@ export const CustomerService = () => {
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  // Initialize Coze Client
-  const client = new CozeAPI({
-    token: 'pat_cztei_ldZ7NYb22K7ZQV4tck3Rmim6I1GAw8ZDAX4WTwRlntq8Kl9TSdgoHhzW73Dimy451',
-    baseURL: '/api/coze', // Use local proxy to avoid CORS
-    allowPersonalAccessTokenInBrowser: true
-  });
-
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const quickQuestions = [
@@ -154,6 +147,8 @@ export const CustomerService = () => {
           // 如果后端已经配置了默认 workflowId，这里甚至可以不传，或者传此作为备选
           workflow_id: import.meta.env.VITE_COZE_WORKFLOW_ID, 
           parameters,
+          // Add this so that Vite local dev server knows it needs to be processed by our plugin/serverless 
+          // or we bypass the proxy and hit our actual dev server endpoint
         }),
       });
 
